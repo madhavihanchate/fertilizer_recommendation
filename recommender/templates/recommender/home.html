@@ -1,0 +1,43 @@
+{% extends 'recommender/base.html' %}
+{% block content %}
+<div class="card">
+  <h2>Do you have a Soil Test Report?</h2>
+  {% if error %}<div class="error">{{ error }}</div>{% endif %}
+  <form method="post" action="{% url 'soil_test_choice' %}">
+    {% csrf_token %}
+    <div class="radio-group">
+      <label><input type="radio" name="has_report" value="yes" required> Yes</label>
+      <label><input type="radio" name="has_report" value="no" required> No</label>
+    </div>
+    <label for="state">State</label>
+    <select name="state" id="state" required>
+      <option value="">-- Select State --</option>
+      {% for s in states %}
+      <option value="{{ s }}">{{ s }}</option>
+      {% endfor %}
+    </select>
+    <label for="crop">Crop</label>
+    <input type="text" name="crop" id="crop" list="crop-list" placeholder="Type or select a crop" required>
+    <datalist id="crop-list">
+      {% for c in all_crops %}
+      <option value="{{ c }}">
+      {% endfor %}
+    </datalist>
+    <button type="submit" class="btn btn-primary">Continue</button>
+  </form>
+</div>
+<script>
+var stateCrops = {{ state_crops_json|safe }};
+document.getElementById('state').addEventListener('change', function() {
+  var state = this.value;
+  var list = document.getElementById('crop-list');
+  list.innerHTML = '';
+  (stateCrops[state] || []).forEach(function(c) {
+    var opt = document.createElement('option');
+    opt.value = c;
+    list.appendChild(opt);
+  });
+  document.getElementById('crop').value = '';
+});
+</script>
+{% endblock %}

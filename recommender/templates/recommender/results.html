@@ -1,0 +1,155 @@
+{% extends 'recommender/base.html' %}
+{% block content %}
+<div class="card">
+  <h2>Recommendations</h2>
+  <p class="subtitle">Crop: <strong>{{ crop }}</strong> | State: <strong>{{ state }}</strong></p>
+</div>
+
+{% if param_results %}
+<div class="card">
+  {% if has_report == 'yes' %}
+  <h3>Soil Parameter Analysis</h3>
+  {% else %}
+  <h3>Soil Parameter Reference Guide</h3>
+  {% endif %}
+  <table>
+    <thead><tr><th>Parameter</th><th>{% if has_report == 'yes' %}Entered Value{% else %}Ideal Reference{% endif %}</th><th>Status</th><th>Management Practice</th><th>Recommended Dose</th></tr></thead>
+    <tbody>
+      {% for p in param_results %}
+      <tr>
+        <td>{{ p.label }}</td>
+        <td>{{ p.value }}</td>
+        <td>
+          {% if 'Low' in p.status or 'Deficient' in p.status %}
+          <span class="pill pill-low">{{ p.status }}</span>
+          {% elif 'Medium' in p.status or 'Marginal' in p.status %}
+          <span class="pill pill-medium">{{ p.status }}</span>
+          {% else %}
+          <span class="pill pill-high">{{ p.status }}</span>
+          {% endif %}
+        </td>
+        <td>{{ p.practice }}</td>
+        <td>{{ p.dose }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% if has_report == 'no' %}
+  <div class="note" style="margin-top:1rem">
+    Showing ideal reference ranges. Soil-specific analysis requires a soil test report.
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
+{% if rdf_ratio %}
+<div class="card">
+  <h3>RDF &amp; Adjusted N:P:K</h3>
+  <table>
+    <tr><th>Nutrient</th><th>Standard RDF (kg/ha)</th><th>Soil Status</th><th>Adjustment Factor</th><th>Adjusted Dose (kg/ha)</th></tr>
+    <tr><td>Nitrogen (N)</td><td>{{ n_rdf }}</td><td>{% for p in param_results %}{% if p.key == 'nitrogen' %}{{ p.status }}{% endif %}{% endfor %}</td><td>
+      {% for p in param_results %}{% if p.key == 'nitrogen' %}
+        {% if 'Low' in p.status or 'Deficient' in p.status %}125%{% elif 'High' in p.status or 'Sufficient' in p.status %}75%{% else %}100%{% endif %}
+      {% endif %}{% endfor %}
+    </td><td>{{ n_adj }}</td></tr>
+    <tr><td>Phosphorus (P₂O₅)</td><td>{{ p_rdf }}</td><td>{% for p in param_results %}{% if p.key == 'phosphorus' %}{{ p.status }}{% endif %}{% endfor %}</td><td>
+      {% for p in param_results %}{% if p.key == 'phosphorus' %}
+        {% if 'Low' in p.status or 'Deficient' in p.status %}125%{% elif 'High' in p.status or 'Sufficient' in p.status %}75%{% else %}100%{% endif %}
+      {% endif %}{% endfor %}
+    </td><td>{{ p_adj }}</td></tr>
+    <tr><td>Potassium (K₂O)</td><td>{{ k_rdf }}</td><td>{% for p in param_results %}{% if p.key == 'potassium' %}{{ p.status }}{% endif %}{% endfor %}</td><td>
+      {% for p in param_results %}{% if p.key == 'potassium' %}
+        {% if 'Low' in p.status or 'Deficient' in p.status %}125%{% elif 'High' in p.status or 'Sufficient' in p.status %}75%{% else %}100%{% endif %}
+      {% endif %}{% endfor %}
+    </td><td>{{ k_adj }}</td></tr>
+  </table>
+</div>
+{% endif %}
+
+<div class="card">
+  <h3>{% if has_report == 'yes' %}Recommended Fertilizer Application{% else %}Recommended Fertilizer Application (Default){% endif %}</h3>
+  <div class="fertilizer-grid">
+    <div class="fert-card"><h3>Urea</h3><div class="value">{{ urea }}</div><div class="unit">kg/ha</div></div>
+    <div class="fert-card"><h3>DAP</h3><div class="value">{{ dap }}</div><div class="unit">kg/ha</div></div>
+    <div class="fert-card"><h3>MOP</h3><div class="value">{{ mop }}</div><div class="unit">kg/ha</div></div>
+  </div>
+  {% if has_report == 'no' %}
+  <div class="note">
+    <strong>No soil test report was provided.</strong> Default fertilizer recommendations have been used.
+    Soil-specific recommendations for pH, EC, Organic Carbon, Nitrogen, Phosphorus, Potassium, Sulphur, Zinc, Iron, Copper, Manganese, Calcium, Magnesium, and Boron cannot be generated without soil analysis.
+  </div>
+  {% endif %}
+</div>
+
+{% if fert_chart_labels %}
+<div class="card">
+  <h3>Fertilizer Comparison: Current vs Required</h3>
+  <div class="chart-container">
+    <canvas id="fertChart"></canvas>
+  </div>
+  <script>
+  new Chart(document.getElementById('fertChart'), {
+    type: 'bar',
+    data: {
+      labels: {{ fert_chart_labels|safe }},
+      datasets: [
+        {
+          label: 'Current (Default)',
+          data: {{ fert_chart_current|safe }},
+          backgroundColor: '#a0aec0',
+          borderRadius: 4,
+        },
+        {
+          label: 'Required (Soil-Based)',
+          data: {{ fert_chart_required|safe }},
+          backgroundColor: '#4299e1',
+          borderRadius: 4,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { position: 'top' } },
+      scales: {
+        y: { beginAtZero: true, title: { display: true, text: 'kg/ha' } }
+      }
+    }
+  });
+  </script>
+</div>
+{% endif %}
+
+{% if normal_yield and rec_yield %}
+<div class="card">
+  <h3>Estimated Yield Comparison</h3>
+  <div class="chart-container">
+    <canvas id="yieldChart"></canvas>
+  </div>
+  <script>
+  new Chart(document.getElementById('yieldChart'), {
+    type: 'bar',
+    data: {
+      labels: {{ chart_labels|safe }},
+      datasets: [{
+        label: 'Estimated Yield (kg/ha)',
+        data: {{ chart_data|safe }},
+        backgroundColor: ['#a0aec0', '#4299e1'],
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, title: { display: true, text: 'Yield (kg/ha)' } }
+      }
+    }
+  });
+  </script>
+</div>
+{% endif %}
+
+<div style="margin-top:1rem;text-align:center">
+  <a href="{% url 'home' %}" class="btn btn-secondary">Start Over</a>
+</div>
+{% endblock %}

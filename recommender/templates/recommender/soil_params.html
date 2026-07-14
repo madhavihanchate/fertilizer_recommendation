@@ -1,0 +1,19 @@
+{% extends 'recommender/base.html' %}
+{% block content %}
+<div class="card">
+  <h2>Enter Soil Test Values</h2>
+  <p class="subtitle">Crop: <strong>{{ crop }}</strong> | State: <strong>{{ state }}</strong></p>
+  <form method="post" action="{% url 'results' %}">
+    {% csrf_token %}
+    <input type="hidden" name="state" value="{{ state }}">
+    <input type="hidden" name="crop" value="{{ crop }}">
+    <input type="hidden" name="has_report" value="yes">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 1.5rem">
+      {% for key, config in params %}
+      <div><label for="{{ key }}">{{ config.label }}</label><input type="number" step="any" name="{{ key }}" id="{{ key }}" required></div>
+      {% endfor %}
+    </div>
+    <button type="submit" class="btn btn-primary" style="margin-top:1rem">Get Recommendations</button>
+  </form>
+</div>
+{% endblock %}
