@@ -89,14 +89,19 @@ def build_param_results_from_values(values_dict):
     return results_list
 
 def soil_test_choice(request):
-    state = request.POST.get('state', '')
-    crop = request.POST.get('crop', '')
-    has_report = request.POST.get('has_report')
+    state = request.POST.get('state') or request.GET.get('state', '')
+    crop = request.POST.get('crop') or request.GET.get('crop', '')
+    has_report = request.POST.get('has_report') or request.GET.get('has_report', '')
     if not state or not crop:
-        return render(request, 'recommender/home.html', {
-            'states': get_states(),
-            'error': 'Please select a state and crop.',
-        })
+        if request.GET.get('ph') or request.GET.get('n') or request.method == 'GET':
+            state = state or 'Karnataka'
+            crop = crop or 'Palm Orchids'
+            has_report = has_report or 'yes'
+        else:
+            return render(request, 'recommender/home.html', {
+                'states': get_states(),
+                'error': 'Please select a state and crop.',
+            })
     if has_report == 'no':
         state_records = fert_data.get(state, [])
         found = _find_record(state_records, crop)
