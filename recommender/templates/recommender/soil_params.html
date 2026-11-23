@@ -111,6 +111,18 @@
     if (!sourceData) return 0;
     var count = 0;
 
+    // Clear previous values and tags first to avoid stale data
+    for (var dId in paramMapping) {
+      var existingInput = document.getElementById(dId);
+      if (existingInput) {
+        existingInput.value = '';
+        existingInput.style.borderColor = '';
+        existingInput.style.backgroundColor = '';
+        existingInput.style.boxShadow = '';
+      }
+    }
+    document.querySelectorAll('.ticket-tag').forEach(function(tag) { tag.remove(); });
+
     for (var domId in paramMapping) {
       var ticketKey = paramMapping[domId];
       var val = sourceData[ticketKey] !== undefined ? sourceData[ticketKey] : sourceData[domId];
